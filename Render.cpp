@@ -31,7 +31,9 @@ bool paused = false;
 bool snakeHeadCamera = false;
 int eatenApples = 0;
 
-Shader phongShader;
+bool gameOverDialogPending = false;
+
+Shader snakeShader;
 bool   shadersReady = false;
 int    locUTexture = -1;
 int    locUUseTex = -1;
@@ -114,6 +116,7 @@ static void restartGame()
     snake.reset();
     eatenApples = 0;
     paused = false;
+    gameOverDialogPending = false;
 
     apples.clear();
     for (int i = 0; i < MAX_APPLES; ++i) {
@@ -264,25 +267,30 @@ void initRender()
         apples.push_back(a);
     }
 
-    phongShader.VshaderFileName = "shaders/snake.vert";
-    phongShader.FshaderFileName = "shaders/snake.frag";
-    phongShader.LoadShaderFromFile();
-    phongShader.Compile();
+    snakeShader.VshaderFileName = "shaders/snake.vert";
+    snakeShader.FshaderFileName = "shaders/snake.frag";
+    snakeShader.LoadShaderFromFile();
+    snakeShader.Compile();
     shadersReady = true;
 
-    locUTexture = glGetUniformLocationARB(phongShader.program, "uTexture");
-    locUUseTex = glGetUniformLocationARB(phongShader.program, "uUseTexture");
-    locUTexGenMode = glGetUniformLocationARB(phongShader.program, "uTexGenMode");
+    locUTexture = glGetUniformLocationARB(snakeShader.program, "uTexture");
+    locUUseTex = glGetUniformLocationARB(snakeShader.program, "uUseTexture");
+    locUTexGenMode = glGetUniformLocationARB(snakeShader.program, "uTexGenMode");
 }
 
 void Render(double delta_time)
 {
+    if (gameOverDialogPending && snake.isDead()) {
+        gameOverDialogPending = false;
+        MessageBoxA(NULL, "Game Over!", "Game Over", MB_OK | MB_ICONINFORMATION);
+    }
+
     if (!paused && !snake.isDead()) {
         snake.update(delta_time);
 
         if (snake.checkWallCollision(WORLD_SIZE) || snake.checkSelfCollision()) {
             snake.kill();
-            OutputDebugStringA("GAME OVER!\n");
+            gameOverDialogPending = true;
         }
     }
 
@@ -338,7 +346,7 @@ void Render(double delta_time)
         Vector3 up(0.0, 0.0, 1.0);
         if (fabs(dir.z()) > 0.9) up = Vector3(0.0, 1.0, 0.0);
 
-        Vector3 lp = head + dir * 0.3 + up * 0.7;
+        Vector3 lp = head + dir * 0.3 + up * 0.75;
 
         light.SetPosition(lp.x(), lp.y(), lp.z());
 
@@ -390,7 +398,7 @@ void Render(double delta_time)
     drawWorldBounds();
 
     if (shadersReady && lightning) {
-        phongShader.UseShader();
+        snakeShader.UseShader();
         glUniform1iARB(locUTexture, 0);
         glUniform1iARB(locUUseTex, texturing ? 1 : 0);
 
@@ -423,9 +431,11 @@ void Render(double delta_time)
 
     std::wstringstream ss;
     ss << std::fixed << std::setprecision(3);
+
     if (snake.isDead()) ss << L"############ GAME OVER ############\n"
         << L"Нажмите R для новой игры\n\n";
     else if (paused)    ss << L"************ ПАУЗА ************\n\n";
+
     ss << L"=== Управление змейкой ===\n"
         << L"Стрелка вверх   - -X\n"
         << L"Стрелка вниз    - +X\n"
