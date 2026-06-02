@@ -11,6 +11,9 @@ class Snake {
     Vector3 direction;
     Vector3 targetDirection;
 
+    Vector3 upDirection;     // сглаженный вектор "вверх" (для камеры в режиме C)
+    Vector3 targetUp;        // целевой вектор "вверх"
+
     float speed;
     float turnSpeed;
     float segmentSize;
@@ -47,6 +50,14 @@ public:
 
     void setDirection(const Vector3& newDir);
 
+    // Повороты относительно текущего направления (по 90°).
+    // pitch  > 0 — петля вверх,  < 0 — петля вниз
+    // yaw    > 0 — поворот влево, < 0 — поворот вправо
+    // roll   > 0/< 0 — крен
+    void pitch(int sign);
+    void yaw(int sign);
+    void roll(int sign);
+
     void changeTexture(const std::string& filename);
     void openTextureDialog();
 
@@ -62,6 +73,7 @@ public:
 
     Vector3 getHeadPosition() const;
     Vector3 getDirection() const { return direction; }
+    Vector3 getUp() const { return upDirection; }
 
     bool checkSelfCollision() const;
     bool checkWallCollision(float worldSize) const;

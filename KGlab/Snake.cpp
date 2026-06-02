@@ -102,6 +102,8 @@ Snake::Snake()
 {
     direction = Vector3(-1, 0, 0);
     targetDirection = direction;
+    upDirection = Vector3(0, 0, 1);
+    targetUp = upDirection;
 
     segments.clear();
     Vector3 head(0, 0, 0);
@@ -144,6 +146,68 @@ void Snake::setDirection(const Vector3& newDir)
     }
 
     targetDirection = nd;
+
+    // Поддерживаем корректный ортогональный вектор "вверх", чтобы
+    // относительные повороты (режим C) работали после переключения
+    // из дальней камеры, где направление задаётся абсолютно.
+    Vector3 u = clampAxisDir(safeNormalize(targetUp));
+    if (u.length() < 0.5 || fabs(u & nd) > 0.5) {
+        if (fabs(nd.z()) < 0.5) u = Vector3(0, 0, 1);
+        else                    u = Vector3(1, 0, 0);
+    }
+    targetUp = clampAxisDir(u);
+}
+
+void Snake::pitch(int sign)
+{
+    Vector3 f = clampAxisDir(safeNormalize(targetDirection));
+    Vector3 u = clampAxisDir(safeNormalize(targetUp));
+    if (f.length() < 0.5 || u.length() < 0.5) return;
+
+    Vector3 newF, newU;
+    if (sign >= 0) {        // вверх
+        newF = u;
+        newU = f * -1.0;
+    }
+    else {                  // вниз
+        newF = u * -1.0;
+        newU = f;
+    }
+
+    targetDirection = clampAxisDir(newF);
+    targetUp = clampAxisDir(newU);
+}
+
+void Snake::yaw(int sign)
+{
+    Vector3 f = clampAxisDir(safeNormalize(targetDirection));
+    Vector3 u = clampAxisDir(safeNormalize(targetUp));
+    if (f.length() < 0.5 || u.length() < 0.5) return;
+
+    Vector3 right = clampAxisDir(f ^ u);
+
+    if (sign >= 0)          // влево
+        targetDirection = clampAxisDir(right * -1.0);
+    else                    // вправо
+        targetDirection = clampAxisDir(right);
+
+    targetUp = u;           // при повороте "верх" не меняется
+}
+
+void Snake::roll(int sign)
+{
+    Vector3 f = clampAxisDir(safeNormalize(targetDirection));
+    Vector3 u = clampAxisDir(safeNormalize(targetUp));
+    if (f.length() < 0.5 || u.length() < 0.5) return;
+
+    Vector3 right = clampAxisDir(f ^ u);
+
+    if (sign >= 0)
+        targetUp = clampAxisDir(right);
+    else
+        targetUp = clampAxisDir(right * -1.0);
+
+    targetDirection = f;
 }
 
 void Snake::update(double deltaTime)
@@ -158,6 +222,20 @@ void Snake::update(double deltaTime)
 
     direction = safeNormalize(direction + (targetDirection - direction) * k);
     if (direction.length() < 1e-9) direction = targetDirection;
+
+    // Сглаживаем вектор "вверх" вместе с направлением и держим его
+    // ортогональным к направлению (Грам-Шмидт), чтобы камера в режиме C
+    // была жёстко привязана к голове и не "перекручивалась".
+    upDirection = safeNormalize(upDirection + (targetUp - upDirection) * k);
+    if (upDirection.length() < 1e-9) upDirection = targetUp;
+
+    double dot = direction & upDirection;
+    upDirection = safeNormalize(upDirection - direction * dot);
+    if (upDirection.length() < 0.5) {
+        Vector3 fb = (fabs(direction.z()) < 0.9) ? Vector3(0, 0, 1) : Vector3(0, 1, 0);
+        upDirection = safeNormalize(fb - direction * (direction & fb));
+        if (upDirection.length() < 0.5) upDirection = Vector3(0, 0, 1);
+    }
 
     Vector3 newHead = segments[0] + direction * (speed * dt);
 
@@ -305,6 +383,8 @@ void Snake::reset()
 {
     direction = Vector3(-1, 0, 0);
     targetDirection = direction;
+    upDirection = Vector3(0, 0, 1);
+    targetUp = upDirection;
 
     segments.clear();
     Vector3 head(0, 0, 0);
