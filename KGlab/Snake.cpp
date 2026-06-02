@@ -1,6 +1,7 @@
 #include "Snake.h"
 #include "CubeRenderer.h"
 #include "MyShaders.h"
+#include "GameConfig.h"
 #include <windows.h>
 #include <commdlg.h>
 #include <GL/gl.h>
@@ -13,6 +14,8 @@ ObjModel Snake::tailModel;
 bool Snake::headModelLoaded = false;
 bool Snake::bodyModelLoaded = false;
 bool Snake::tailModelLoaded = false;
+
+static const double PI = 3.14159265358979323846;
 
 static bool chooseImageFile(char outPath[260])
 {
@@ -70,6 +73,20 @@ static Vector3 clampAxisDir(const Vector3& v)
     if (ax >= ay && ax >= az) return Vector3((v.x() >= 0) ? 1.0 : -1.0, 0.0, 0.0);
     if (ay >= ax && ay >= az) return Vector3(0.0, (v.y() >= 0) ? 1.0 : -1.0, 0.0);
     return Vector3(0.0, 0.0, (v.z() >= 0) ? 1.0 : -1.0);
+}
+
+static void applyForwardOrientation(const Vector3& fwdRaw)
+{
+    Vector3 f = safeNormalize(fwdRaw);
+    if (f.length() < 1e-9) return;
+
+    double yawDeg = atan2(f.y(), f.x()) * 180.0 / PI;
+
+    double horiz = sqrt(f.x() * f.x() + f.y() * f.y());
+    double pitchDeg = -atan2(f.z(), horiz) * 180.0 / PI;
+
+    glRotated(yawDeg, 0.0, 0.0, 1.0);
+    glRotated(pitchDeg, 0.0, 1.0, 0.0);
 }
 
 Snake::Snake()
@@ -144,7 +161,7 @@ void Snake::update(double deltaTime)
 
     Vector3 newHead = segments[0] + direction * (speed * dt);
 
-    float limit = 10.0f;
+    float limit = GameConfig::WORLD_SIZE;
     if (newHead.x() > limit) newHead.setCoords(limit, newHead.y(), newHead.z());
     if (newHead.x() < -limit) newHead.setCoords(-limit, newHead.y(), newHead.z());
     if (newHead.y() > limit) newHead.setCoords(newHead.x(), limit, newHead.z());
@@ -171,7 +188,7 @@ void Snake::update(double deltaTime)
     if (growCounter > 0)
     {
         Vector3 tail = segments.back();
-        Vector3 tailDir;
+        Vector3 tailDir(0, 0, 0);
         if (segments.size() >= 2) tailDir = safeNormalize(segments[segments.size() - 2] - tail);
         else tailDir = safeNormalize(direction);
 
@@ -182,7 +199,7 @@ void Snake::update(double deltaTime)
     }
 }
 
-void Snake::drawSegmentObj(const Vector3& pos, ObjModel& model, bool modelLoaded,
+void Snake::drawSegmentObj(const Vector3& pos, const Vector3& fwd, ObjModel& model, bool modelLoaded,
     Texture& tex, bool texLoaded)
 {
     if (texLoaded) {
@@ -199,6 +216,7 @@ void Snake::drawSegmentObj(const Vector3& pos, ObjModel& model, bool modelLoaded
     if (modelLoaded) {
         glPushMatrix();
         glTranslated(pos.x(), pos.y(), pos.z());
+        applyForwardOrientation(fwd);
         glScaled(segmentSize, segmentSize, segmentSize);
         model.Draw();
         glPopMatrix();
@@ -215,12 +233,21 @@ void Snake::draw()
 {
     for (size_t i = 0; i < segments.size(); ++i)
     {
+        Vector3 fwd(0, 0, 0);
+        if (i == 0) {
+            fwd = direction;
+        }
+        else {
+            fwd = segments[i - 1] - segments[i];
+            if (fwd.length() < 1e-9) fwd = direction;
+        }
+
         if (i == 0)
-            drawSegmentObj(segments[i], headModel, headModelLoaded, headTexture, headLoaded);
+            drawSegmentObj(segments[i], fwd, headModel, headModelLoaded, headTexture, headLoaded);
         else if (i + 1 == segments.size())
-            drawSegmentObj(segments[i], tailModel, tailModelLoaded, tailTexture, tailLoaded);
+            drawSegmentObj(segments[i], fwd, tailModel, tailModelLoaded, tailTexture, tailLoaded);
         else
-            drawSegmentObj(segments[i], bodyModel, bodyModelLoaded, bodyTexture, bodyLoaded);
+            drawSegmentObj(segments[i], fwd, bodyModel, bodyModelLoaded, bodyTexture, bodyLoaded);
     }
 }
 

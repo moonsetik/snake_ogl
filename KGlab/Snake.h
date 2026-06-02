@@ -35,7 +35,7 @@ class Snake {
     int growCounter;
     bool dead;
 
-    void drawSegmentObj(const Vector3& pos, ObjModel& model, bool modelLoaded, Texture& tex, bool texLoaded);
+    void drawSegmentObj(const Vector3& pos, const Vector3& fwd, ObjModel& model, bool modelLoaded, Texture& tex, bool texLoaded);
 
 public:
     Snake();

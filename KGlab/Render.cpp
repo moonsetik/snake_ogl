@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Light.h"
 #include "MyShaders.h"
+#include "GameConfig.h"
 
 #include <windows.h>
 #include <GL/gl.h>
@@ -21,8 +22,6 @@ Light light;
 Camera camera;
 Snake snake;
 std::vector<Apple> apples;
-const int MAX_APPLES = 3;
-const float WORLD_SIZE = 10.0f;
 
 bool texturing = true;
 bool lightning = true;
@@ -103,9 +102,9 @@ bool isPositionOccupied(const Vector3& pos, float minDist) {
 Vector3 generateRandomPosition() {
     Vector3 newPos;
     do {
-        float x = ((float)rand() / RAND_MAX) * 2 * WORLD_SIZE - WORLD_SIZE;
-        float y = ((float)rand() / RAND_MAX) * 2 * WORLD_SIZE - WORLD_SIZE;
-        float z = ((float)rand() / RAND_MAX) * 2 * WORLD_SIZE - WORLD_SIZE;
+        float x = ((float)rand() / RAND_MAX) * 2 * GameConfig::WORLD_SIZE - GameConfig::WORLD_SIZE;
+        float y = ((float)rand() / RAND_MAX) * 2 * GameConfig::WORLD_SIZE - GameConfig::WORLD_SIZE;
+        float z = ((float)rand() / RAND_MAX) * 2 * GameConfig::WORLD_SIZE - GameConfig::WORLD_SIZE;
         newPos = Vector3(x, y, z);
     } while (isPositionOccupied(newPos, snake.getSegmentSize() * 1.2f));
     return newPos;
@@ -119,7 +118,7 @@ static void restartGame()
     gameOverDialogPending = false;
 
     apples.clear();
-    for (int i = 0; i < MAX_APPLES; ++i) {
+    for (int i = 0; i < GameConfig::MAX_APPLES; ++i) {
         Apple a;
         a.setPosition(generateRandomPosition());
         apples.push_back(a);
@@ -128,8 +127,8 @@ static void restartGame()
 
 static void drawWorldBounds()
 {
-    const float s = WORLD_SIZE;
-    const float step = 1.0f;
+    const float s = GameConfig::WORLD_SIZE;
+    const float step = GameConfig::GRID_STEP;
 
     GLboolean wasLighting = glIsEnabled(GL_LIGHTING);
     GLboolean wasTexture = glIsEnabled(GL_TEXTURE_2D);
@@ -261,7 +260,7 @@ void initRender()
     snake.initDefaults();
 
     apples.clear();
-    for (int i = 0; i < MAX_APPLES; ++i) {
+    for (int i = 0; i < GameConfig::MAX_APPLES; ++i) {
         Apple a;
         a.setPosition(generateRandomPosition());
         apples.push_back(a);
@@ -288,7 +287,7 @@ void Render(double delta_time)
     if (!paused && !snake.isDead()) {
         snake.update(delta_time);
 
-        if (snake.checkWallCollision(WORLD_SIZE) || snake.checkSelfCollision()) {
+        if (snake.checkWallCollision(GameConfig::WORLD_SIZE) || snake.checkSelfCollision()) {
             snake.kill();
             gameOverDialogPending = true;
         }
