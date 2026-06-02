@@ -332,7 +332,28 @@ void Render(double delta_time)
     }
     else
     {
-        camera.SetUpCamera();
+        // Фиксация камеры на змейке (3-е лицо, как у машинки):
+        // цель — голова змеи, а camera.x/y/z работают как смещение
+        // относительно неё. Вращение мышью и зум колесом сохраняются,
+        // но центр орбиты привязан к голове и едет за змейкой.
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        Vector3 head = snake.getHeadPosition();
+
+        double targetX = head.x();
+        double targetY = head.y();
+        double targetZ = head.z();
+
+        double eyeX = targetX + camera.x();
+        double eyeY = targetY + camera.y();
+        double eyeZ = targetZ + camera.z();
+
+        gluLookAt(
+            eyeX, eyeY, eyeZ,
+            targetX, targetY, targetZ,
+            0.0, 0.0, 1.0
+        );
     }
 
     light.SetUpLight();
