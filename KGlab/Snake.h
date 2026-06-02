@@ -11,8 +11,8 @@ class Snake {
     Vector3 direction;
     Vector3 targetDirection;
 
-    Vector3 upDirection;     // сглаженный вектор "вверх" (для камеры в режиме C)
-    Vector3 targetUp;        // целевой вектор "вверх"
+    Vector3 upDirection;     
+    Vector3 targetUp;       
 
     float speed;
     float turnSpeed;
@@ -50,10 +50,6 @@ public:
 
     void setDirection(const Vector3& newDir);
 
-    // Повороты относительно текущего направления (по 90°).
-    // pitch  > 0 — петля вверх,  < 0 — петля вниз
-    // yaw    > 0 — поворот влево, < 0 — поворот вправо
-    // roll   > 0/< 0 — крен
     void pitch(int sign);
     void yaw(int sign);
     void roll(int sign);

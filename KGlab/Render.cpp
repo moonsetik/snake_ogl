@@ -207,10 +207,6 @@ void initRender()
 
         if (snakeHeadCamera)
         {
-            // Режим C: управление относительно текущего направления
-            //  Вверх/Вниз — мёртвая петля (тангаж)
-            //  Влево/Вправо — поворот (рыскание)
-            //  Enter/Shift — крен
             if (key == VK_UP)     snake.pitch(+1);
             if (key == VK_DOWN)   snake.pitch(-1);
             if (key == VK_LEFT)   snake.yaw(+1);
@@ -220,7 +216,6 @@ void initRender()
         }
         else
         {
-            // Дальняя камера: прежнее абсолютное управление по осям мира
             if (key == VK_LEFT)   snake.setDirection(Vector3(0, -1, 0));
             if (key == VK_RIGHT)  snake.setDirection(Vector3(0, 1, 0));
             if (key == VK_UP)     snake.setDirection(Vector3(-1, 0, 0));
@@ -314,8 +309,6 @@ void Render(double delta_time)
 
         Vector3 head = snake.getHeadPosition();
         Vector3 dir = snake.getDirection().normalize();
-        // "Верх" берём у самой змейки — камера жёстко привязана к голове
-        // и крутится вместе с ней, поэтому лево всегда остаётся лево.
         Vector3 up = snake.getUp().normalize();
 
         float camBack = 4.0f;
@@ -332,10 +325,6 @@ void Render(double delta_time)
     }
     else
     {
-        // Фиксация камеры на змейке (3-е лицо, как у машинки):
-        // цель — голова змеи, а camera.x/y/z работают как смещение
-        // относительно неё. Вращение мышью и зум колесом сохраняются,
-        // но центр орбиты привязан к голове и едет за змейкой.
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
