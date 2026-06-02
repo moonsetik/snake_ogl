@@ -207,20 +207,20 @@ void initRender()
 
         if (snakeHeadCamera)
         {
-            Vector3 forward = snake.getDirection().normalize();
-            Vector3 up(0.0, 0.0, 1.0);
-            if (fabs(forward.z()) > 0.9) up = Vector3(0.0, 1.0, 0.0);
-
-            Vector3 right = (forward ^ up).normalize();
-            Vector3 left = right * (-1.0);
-
-            if (key == VK_RIGHT) snake.setDirection(right);
-            if (key == VK_LEFT)  snake.setDirection(left);
-            if (key == VK_UP)    snake.setDirection(Vector3(0, 0, 1));
-            if (key == VK_DOWN)  snake.setDirection(Vector3(0, 0, -1));
+            // Режим C: управление относительно текущего направления
+            //  Вверх/Вниз — мёртвая петля (тангаж)
+            //  Влево/Вправо — поворот (рыскание)
+            //  Enter/Shift — крен
+            if (key == VK_UP)     snake.pitch(+1);
+            if (key == VK_DOWN)   snake.pitch(-1);
+            if (key == VK_LEFT)   snake.yaw(+1);
+            if (key == VK_RIGHT)  snake.yaw(-1);
+            if (key == VK_RETURN) snake.roll(+1);
+            if (key == VK_SHIFT)  snake.roll(-1);
         }
         else
         {
+            // Дальняя камера: прежнее абсолютное управление по осям мира
             if (key == VK_LEFT)   snake.setDirection(Vector3(0, -1, 0));
             if (key == VK_RIGHT)  snake.setDirection(Vector3(0, 1, 0));
             if (key == VK_UP)     snake.setDirection(Vector3(-1, 0, 0));
@@ -314,12 +314,12 @@ void Render(double delta_time)
 
         Vector3 head = snake.getHeadPosition();
         Vector3 dir = snake.getDirection().normalize();
+        // "Верх" берём у самой змейки — камера жёстко привязана к голове
+        // и крутится вместе с ней, поэтому лево всегда остаётся лево.
+        Vector3 up = snake.getUp().normalize();
 
         float camBack = 4.0f;
         float camUp = 1.2f;
-
-        Vector3 up(0.0, 0.0, 1.0);
-        if (fabs(dir.z()) > 0.9) up = Vector3(0.0, 1.0, 0.0);
 
         Vector3 camPos = head - dir * camBack + up * camUp;
         Vector3 target = head + dir * 2.0;
@@ -362,9 +362,7 @@ void Render(double delta_time)
     {
         Vector3 head = snake.getHeadPosition();
         Vector3 dir = snake.getDirection().normalize();
-
-        Vector3 up(0.0, 0.0, 1.0);
-        if (fabs(dir.z()) > 0.9) up = Vector3(0.0, 1.0, 0.0);
+        Vector3 up = snake.getUp().normalize();
 
         Vector3 lp = head + dir * 0.3 + up * 0.75;
 
@@ -456,14 +454,24 @@ void Render(double delta_time)
         << L"Нажмите R для новой игры\n\n";
     else if (paused)    ss << L"************ ПАУЗА ************\n\n";
 
-    ss << L"=== Управление змейкой ===\n"
+    if (snakeHeadCamera)
+        ss << L"=== Управление (режим C, относительно направления) ===\n"
+        << L"Стрелка вверх   - петля вверх\n"
+        << L"Стрелка вниз    - петля вниз\n"
+        << L"Стрелка влево   - поворот влево\n"
+        << L"Стрелка вправо  - поворот вправо\n"
+        << L"Enter           - крен (+)\n"
+        << L"Shift           - крен (-)\n";
+    else
+        ss << L"=== Управление (дальняя камера, оси мира) ===\n"
         << L"Стрелка вверх   - -X\n"
         << L"Стрелка вниз    - +X\n"
         << L"Стрелка влево   - -Y\n"
         << L"Стрелка вправо  - +Y\n"
         << L"Enter           - +Z\n"
-        << L"Shift           - -Z\n"
-        << L"Пробел          - пауза\n"
+        << L"Shift           - -Z\n";
+
+    ss << L"Пробел          - пауза\n"
         << L"R               - новая игра\n"
         << L"H               - текстура головы\n"
         << L"B               - текстура тела\n"
