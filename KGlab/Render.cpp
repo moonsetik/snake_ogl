@@ -13,6 +13,7 @@
 #include <GL/glu.h>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -30,6 +31,9 @@ bool paused = false;
 bool snakeHeadCamera = false;
 int eatenApples = 0;
 
+int bestScore = 0;
+static const char* BEST_SCORE_FILE = "best_score.txt";
+
 bool gameOverDialogPending = false;
 
 Shader snakeShader;
@@ -37,6 +41,36 @@ bool   shadersReady = false;
 int    locUTexture = -1;
 int    locUUseTex = -1;
 int    locUTexGenMode = -1;
+
+static void loadBestScore()
+{
+    std::ifstream f(BEST_SCORE_FILE);
+    if (f.is_open()) {
+        int v = 0;
+        if (f >> v) {
+            if (v < 0) v = 0;
+            bestScore = v;
+        }
+        f.close();
+    }
+}
+
+static void saveBestScore()
+{
+    std::ofstream f(BEST_SCORE_FILE, std::ios::trunc);
+    if (f.is_open()) {
+        f << bestScore;
+        f.close();
+    }
+}
+
+static void updateBestScore()
+{
+    if (eatenApples > bestScore) {
+        bestScore = eatenApples;
+        saveBestScore();
+    }
+}
 
 static bool pickObjFile(char outPath[260])
 {
@@ -191,6 +225,8 @@ void initRender()
 {
     srand((unsigned)time(NULL));
 
+    loadBestScore();
+
     camera.setPosition(5, 5, 6);
     gl.WheelEvent.reaction(&camera, &Camera::Zoom);
     gl.MouseMovieEvent.reaction(&camera, &Camera::MouseMovie);
@@ -251,7 +287,7 @@ void initRender()
 
     gl.KeyDownEvent.reaction(switchModes);
 
-    text.setSize(512, 480);
+    text.setSize(512, 520);
     snake.initDefaults();
 
     apples.clear();
@@ -285,6 +321,7 @@ void Render(double delta_time)
         if (snake.checkWallCollision(GameConfig::WORLD_SIZE) || snake.checkSelfCollision()) {
             snake.kill();
             gameOverDialogPending = true;
+            updateBestScore();
         }
     }
 
@@ -480,6 +517,7 @@ void Render(double delta_time)
         << L"Позиция головы:   (" << std::setw(6) << snake.getHeadPosition().x() << L"," << std::setw(6) << snake.getHeadPosition().y() << L"," << std::setw(6) << snake.getHeadPosition().z() << L")\n"
         << L"Длина змеи:       " << snake.getSegments().size() << L"\n"
         << L"Яблок собрано:    " << eatenApples << L"\n"
+        << L"Лучший счёт:      " << bestScore << L"\n"
         << L"Delta time:       " << delta_time << L" sec\n";
 
     text.setPosition(10, gl.getHeight() - 10 - 480);
